@@ -57,10 +57,10 @@ fi
 
 AC_ARG_ENABLE([cthelper],
         AS_HELP_STRING([--disable-cthelper], [Do not build userspace helper support]),
-        [enable_cthelper="no"], [enable_cthelper="yes"])
+        [enable_cthelper="$enableval"], [enable_cthelper="yes"])
 AC_ARG_ENABLE([cttimeout],
         AS_HELP_STRING([--disable-cttimeout], [Do not build timeout support]),
-        [enable_cttimeout="no"], [enable_cttimeout="yes"])
+        [enable_cttimeout="$enableval"], [enable_cttimeout="yes"])
 
 PKG_CHECK_MODULES([LIBNFNETLINK], [libnfnetlink >= 1.0.1])
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0.3])
