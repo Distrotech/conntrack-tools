@@ -58,6 +58,10 @@ if HAVE_CTHELPER
 conntrackd_SOURCES += cthelper.c helpers.c utils.c expect.c
 endif
 
+if HAVE_SYSTEMD
+conntrackd_SOURCES += systemd.c
+endif
+
 # yacc and lex generate dirty code
 read_config_yy.o read_config_lex.o: AM_CFLAGS += -Wno-missing-prototypes -Wno-missing-declarations -Wno-implicit-function-declaration -Wno-nested-externs -Wno-undef -Wno-redundant-decls
 
@@ -66,6 +70,10 @@ conntrackd_LDADD = ${LIBMNL_LIBS} ${LIBNETFILTER_CONNTRACK_LIBS} \
 
 if HAVE_CTHELPER
 conntrackd_LDADD += ${LIBNETFILTER_CTHELPER_LIBS} ${LIBNETFILTER_QUEUE_LIBS}
+endif
+
+if HAVE_SYSTEMD
+conntrackd_LDADD += ${LIBSYSTEMD_LIBS}
 endif
 
 conntrackd_LDFLAGS = -export-dynamic

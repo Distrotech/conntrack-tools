@@ -20,6 +20,7 @@
 #include "conntrackd.h"
 #include "log.h"
 #include "helper.h"
+#include "systemd.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -403,6 +404,8 @@ int main(int argc, char *argv[])
 	do_chdir("/");
 	close(STDIN_FILENO);
 
+	sd_ct_watchdog_init();
+
 	/* Daemonize conntrackd */
 	if (type == DAEMON) {
 		pid_t pid;
@@ -410,8 +413,10 @@ int main(int argc, char *argv[])
 		if ((pid = fork()) == -1) {
 			perror("fork has failed: ");
 			exit(EXIT_FAILURE);
-		} else if (pid)
+		} else if (pid) {
+			sd_ct_mainpid(pid);
 			exit(EXIT_SUCCESS);
+		}
 
 		setsid();
 
@@ -421,6 +426,8 @@ int main(int argc, char *argv[])
 		dlog(LOG_NOTICE, "-- starting in daemon mode --");
 	} else
 		dlog(LOG_NOTICE, "-- starting in console mode --");
+
+	sd_ct_init();
 
 	/*
 	 * run main process

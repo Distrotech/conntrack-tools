@@ -109,6 +109,7 @@ struct ct_conf {
 	int poll_kernel_secs;
 	int filter_from_kernelspace;
 	int event_iterations_limit;
+	int systemd;
 	struct {
 		int error_queue_length;
 	} channelc;

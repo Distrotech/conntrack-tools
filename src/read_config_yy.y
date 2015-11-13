@@ -89,6 +89,7 @@ enum {
 %token T_OPTIONS T_TCP_WINDOW_TRACKING T_EXPECT_SYNC
 %token T_HELPER T_HELPER_QUEUE_NUM T_HELPER_QUEUE_LEN T_HELPER_POLICY
 %token T_HELPER_EXPECT_TIMEOUT T_HELPER_EXPECT_MAX
+%token T_SYSTEMD
 
 %token <string> T_IP T_PATH_VAL
 %token <val> T_NUMBER
@@ -1122,7 +1123,14 @@ general_line: hashsize
 	    | netlink_events_reliable
 	    | nice
 	    | scheduler
+	    | systemd
 	    ;
+
+systemd: T_SYSTEMD T_ON { /* already enabled in init_config() */ };
+systemd: T_SYSTEMD T_OFF
+{
+	conf.systemd = 0;
+};
 
 netlink_buffer_size: T_BUFFER_SIZE T_NUMBER
 {
@@ -1856,6 +1864,9 @@ init_config(char *filename)
 	CONFIG(stats).syslog_facility = -1;
 	CONFIG(netlink).subsys_id = -1;
 
+	/* enable systemd by default */
+	CONFIG(systemd) = 1;
+
 	/* Initialize list of user-space helpers */
 	INIT_LIST_HEAD(&CONFIG(cthelper).list);
 
@@ -1864,6 +1875,14 @@ init_config(char *filename)
 	yyrestart(fp);
 	yyparse();
 	fclose(fp);
+
+#ifndef BUILD_SYSTEMD
+	if (CONFIG(systemd) == 1) {
+		print_err(CTD_CFG_WARN, "systemd runtime support activated but"
+					" conntrackd was built without support"
+					" for it. Recompile conntrackd");
+	}
+#endif /* BUILD_SYSTEMD */
 
 	/* set to default is not specified */
 	if (strcmp(CONFIG(lockfile), "") == 0)

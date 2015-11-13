@@ -61,6 +61,9 @@ AC_ARG_ENABLE([cthelper],
 AC_ARG_ENABLE([cttimeout],
         AS_HELP_STRING([--disable-cttimeout], [Do not build timeout support]),
         [enable_cttimeout="$enableval"], [enable_cttimeout="yes"])
+AC_ARG_ENABLE([systemd],
+        AS_HELP_STRING([--enable-systemd], [Build systemd support]),
+        [enable_systemd="$enableval"], [enable_systemd="no"])
 
 PKG_CHECK_MODULES([LIBNFNETLINK], [libnfnetlink >= 1.0.1])
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0.3])
@@ -76,6 +79,12 @@ AS_IF([test "x$enable_cthelper" = "xyes"], [
 	AC_DEFINE([BUILD_CTHELPER], [1], [Building cthelper support])
 ])
 AM_CONDITIONAL([HAVE_CTHELPER], [test "x$enable_cthelper" = "xyes"])
+
+AS_IF([test "x$enable_systemd" = "xyes"], [
+	PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd >= 227])
+	AC_DEFINE([BUILD_SYSTEMD], [1], [Building systemd support])
+])
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$enable_systemd" = "xyes"])
 
 AC_CHECK_HEADERS([linux/capability.h],, [AC_MSG_ERROR([Cannot find linux/capabibility.h])])
 
@@ -146,4 +155,5 @@ AC_OUTPUT
 echo "
 conntrack-tools configuration:
   userspace conntrack helper support:	${enable_cthelper}
-  conntrack timeout support:		${enable_cttimeout}"
+  conntrack timeout support:		${enable_cttimeout}
+  systemd support:			${enable_systemd}"

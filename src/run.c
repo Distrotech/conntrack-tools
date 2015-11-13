@@ -30,6 +30,7 @@
 #include "origin.h"
 #include "date.h"
 #include "internal.h"
+#include "systemd.h"
 
 #include <errno.h>
 #include <signal.h>
@@ -64,6 +65,7 @@ void killer(int signo)
 	dlog(LOG_NOTICE, "---- shutdown received ----");
 	close_log();
 
+	sd_ct_stop();
 	exit(0);
 }
 
