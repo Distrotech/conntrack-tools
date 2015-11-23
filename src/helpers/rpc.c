@@ -28,6 +28,7 @@
 
 #include <rpc/rpc_msg.h>
 #include <rpc/pmap_prot.h>
+#define _GNU_SOURCE
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
