@@ -2072,10 +2072,12 @@ int main(int argc, char *argv[])
 		case 'q':
 			nfct_set_addr_from_opt(c, tmpl.ct, &ad, &family);
 			break;
-		case '{':
-		case '}':
 		case '[':
 		case ']':
+			nfct_set_addr_from_opt(c, tmpl.exptuple, &ad, &family);
+			break;
+		case '{':
+		case '}':
 			nfct_set_addr_from_opt(c, tmpl.mask, &ad, &family);
 			break;
 		case 'p':
