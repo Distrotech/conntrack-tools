@@ -2074,8 +2074,6 @@ int main(int argc, char *argv[])
 			break;
 		case '{':
 		case '}':
-			nfct_set_addr_from_opt(c, tmpl.exptuple, &ad, &family);
-			break;
 		case '[':
 		case ']':
 			nfct_set_addr_from_opt(c, tmpl.mask, &ad, &family);
