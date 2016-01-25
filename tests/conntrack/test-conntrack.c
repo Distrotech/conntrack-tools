@@ -65,6 +65,7 @@ int main()
 			strcpy(tmp + strlen(CT_PROG) + 1, buf);
 			printf("(%d) Executing: %s\n", line, tmp);
 
+			fflush(stdout);
 			ret = system(tmp);
 
 			if (WIFEXITED(ret) &&
