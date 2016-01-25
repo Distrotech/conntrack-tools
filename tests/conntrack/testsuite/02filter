@@ -19,5 +19,7 @@ conntrack -L -f ipv4 ; OK
 # filter by mark
 conntrack -L --mark 0 ; OK
 conntrack -L --mark 0/0xffffffff; OK
+# filter by netmask
+conntrack -L -s 1.1.1.0 --mask-src 255.255.255.0 -d 2.0.0.0 --mask-dst 255.0.0.0 ; OK
 # delete dummy
 conntrack -D -d 2.2.2.2 ; OK
