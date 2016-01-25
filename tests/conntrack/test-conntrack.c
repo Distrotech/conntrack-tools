@@ -34,6 +34,9 @@ int main()
 	for (i = 0; i < n; i++) {
 		dent = dents[i];
 
+		if (dent->d_name[0] == '.')
+			continue;
+
 		sprintf(file, "testsuite/%s", dent->d_name);
 
 		line = 0;
