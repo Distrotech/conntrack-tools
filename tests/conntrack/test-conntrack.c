@@ -17,7 +17,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 
-#define CT_PROG "/usr/sbin/conntrack"
+#define CT_PROG "../../src/conntrack"
 
 int main()
 {
