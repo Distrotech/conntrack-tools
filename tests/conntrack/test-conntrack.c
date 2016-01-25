@@ -23,14 +23,16 @@ int main()
 {
 	int ret, ok = 0, bad = 0, line;
 	FILE *fp;
-	DIR *d;
 	char buf[1024];
+	struct dirent **dents;
 	struct dirent *dent;
 	char file[1024];
+	int i,n;
 
-	d = opendir("testsuite");
+	n = scandir("testsuite", &dents, NULL, alphasort);
 
-	while ((dent = readdir(d)) != NULL) {
+	for (i = 0; i < n; i++) {
+		dent = dents[i];
 
 		sprintf(file, "testsuite/%s", dent->d_name);
 
@@ -88,7 +90,11 @@ int main()
 		}
 		fclose(fp);
 	}
-	closedir(d);
+
+	for (i = 0; i < n; i++)
+		free(dents[i]);
+
+	free(dents);
 
 	fprintf(stdout, "OK: %d BAD: %d\n", ok, bad);
 }
