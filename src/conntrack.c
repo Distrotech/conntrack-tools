@@ -1208,6 +1208,21 @@ filter_nat(const struct nf_conntrack *obj, const struct nf_conntrack *ct)
 	return 0;
 }
 
+static int
+nfct_filter(struct nf_conntrack *obj, struct nf_conntrack *ct)
+{
+	if (filter_nat(obj, ct) ||
+	    filter_mark(ct) ||
+	    filter_label(ct))
+		return 1;
+
+	if (options & CT_COMPARISON &&
+	    !nfct_cmp(obj, ct, NFCT_CMP_ALL | NFCT_CMP_MASK))
+		return 1;
+
+	return 0;
+}
+
 static int counter;
 static int dump_xml_header_done = 1;
 
@@ -1248,17 +1263,7 @@ static int event_cb(enum nf_conntrack_msg_type type,
 	unsigned int op_type = NFCT_O_DEFAULT;
 	unsigned int op_flags = 0;
 
-	if (filter_nat(obj, ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_mark(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_label(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (options & CT_COMPARISON &&
-	    !nfct_cmp(obj, ct, NFCT_CMP_ALL | NFCT_CMP_MASK))
+	if (nfct_filter(obj, ct))
 		return NFCT_CB_CONTINUE;
 
 	if (output_mask & _O_XML) {
@@ -1303,17 +1308,7 @@ static int dump_cb(enum nf_conntrack_msg_type type,
 	unsigned int op_type = NFCT_O_DEFAULT;
 	unsigned int op_flags = 0;
 
-	if (filter_nat(obj, ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_mark(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_label(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (options & CT_COMPARISON &&
-	    !nfct_cmp(obj, ct, NFCT_CMP_ALL | NFCT_CMP_MASK))
+	if (nfct_filter(obj, ct))
 		return NFCT_CB_CONTINUE;
 
 	if (output_mask & _O_XML) {
@@ -1349,17 +1344,7 @@ static int delete_cb(enum nf_conntrack_msg_type type,
 	unsigned int op_type = NFCT_O_DEFAULT;
 	unsigned int op_flags = 0;
 
-	if (filter_nat(obj, ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_mark(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_label(ct))
-		return NFCT_CB_CONTINUE;
-
-	if (options & CT_COMPARISON &&
-	    !nfct_cmp(obj, ct, NFCT_CMP_ALL | NFCT_CMP_MASK))
+	if (nfct_filter(obj, ct))
 		return NFCT_CB_CONTINUE;
 
 	res = nfct_query(ith, NFCT_Q_DESTROY, ct);
@@ -1498,7 +1483,8 @@ static int update_cb(enum nf_conntrack_msg_type type,
 	int res;
 	struct nf_conntrack *obj = data, *tmp;
 
-	if (filter_nat(obj, ct))
+	if (filter_nat(obj, ct) ||
+	    filter_label(ct))
 		return NFCT_CB_CONTINUE;
 
 	if (nfct_attr_is_set(obj, ATTR_ID) && nfct_attr_is_set(ct, ATTR_ID) &&
@@ -1508,9 +1494,6 @@ static int update_cb(enum nf_conntrack_msg_type type,
 	if (options & CT_OPT_TUPLE_ORIG && !nfct_cmp(obj, ct, NFCT_CMP_ORIG))
 		return NFCT_CB_CONTINUE;
 	if (options & CT_OPT_TUPLE_REPL && !nfct_cmp(obj, ct, NFCT_CMP_REPL))
-		return NFCT_CB_CONTINUE;
-
-	if (filter_label(ct))
 		return NFCT_CB_CONTINUE;
 
 	tmp = nfct_new();
