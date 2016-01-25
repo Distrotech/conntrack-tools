@@ -1355,6 +1355,9 @@ static int delete_cb(enum nf_conntrack_msg_type type,
 	if (filter_mark(ct))
 		return NFCT_CB_CONTINUE;
 
+	if (filter_label(ct))
+		return NFCT_CB_CONTINUE;
+
 	if (options & CT_COMPARISON &&
 	    !nfct_cmp(obj, ct, NFCT_CMP_ALL | NFCT_CMP_MASK))
 		return NFCT_CB_CONTINUE;
