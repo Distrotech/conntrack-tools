@@ -191,10 +191,13 @@ Specify the tuple source address of an expectation.
 Specify the tuple destination address of an expectation.
 .TP
 .BI "--mask-src " IP_ADDRESS
-Specify the source address mask of an expectation.
+Specify the source address mask.
+For conntrack this option is only available in conjunction with "\-L, \-\-dump", "\-E, \-\-event", "\-U \-\-update" or "\-D \-\-delete".
+For expectations this option is only available in conjunction with "\-I, \-\-create".
 .TP
 .BI "--mask-dst " IP_ADDRESS
-Specify the destination address mask of an expectation.
+Specify the destination address mask.
+Same limitations as for "--mask-src".
 .SS PROTOCOL FILTER PARAMETERS
 .TP
 TCP-specific fields:

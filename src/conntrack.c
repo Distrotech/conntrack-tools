@@ -377,13 +377,13 @@ static char commands_v_options[NUMBER_OF_CMD][NUMBER_OF_OPT] =
 /* Well, it's better than "Re: Linux vs FreeBSD" */
 {
           /*   s d r q p t u z e [ ] { } a m i f n g o c b j w l < > ( ) */
-/*CT_LIST*/   {2,2,2,2,2,0,2,2,0,0,0,0,0,0,2,0,2,2,2,2,2,0,2,2,2,0,0,2,2},
+/*CT_LIST*/   {2,2,2,2,2,0,2,2,0,0,0,2,2,0,2,0,2,2,2,2,2,0,2,2,2,0,0,2,2},
 /*CT_CREATE*/ {3,3,3,3,1,1,2,0,0,0,0,0,0,2,2,0,0,2,2,0,0,0,0,2,0,2,0,2,2},
-/*CT_UPDATE*/ {2,2,2,2,2,2,2,0,0,0,0,0,0,0,2,2,2,2,2,2,0,0,0,0,2,2,2,0,0},
-/*CT_DELETE*/ {2,2,2,2,2,2,2,0,0,0,0,0,0,0,2,2,2,2,2,2,0,0,0,2,2,0,0,2,2},
+/*CT_UPDATE*/ {2,2,2,2,2,2,2,0,0,0,0,2,2,0,2,2,2,2,2,2,0,0,0,0,2,2,2,0,0},
+/*CT_DELETE*/ {2,2,2,2,2,2,2,0,0,0,0,2,2,0,2,2,2,2,2,2,0,0,0,2,2,0,0,2,2},
 /*CT_GET*/    {3,3,3,3,1,0,0,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,0,0,2,0,0,0,0},
 /*CT_FLUSH*/  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-/*CT_EVENT*/  {2,2,2,2,2,0,0,0,2,0,0,0,0,0,2,0,0,2,2,2,2,2,2,2,2,0,0,2,2},
+/*CT_EVENT*/  {2,2,2,2,2,0,0,0,2,0,0,2,2,0,2,0,0,2,2,2,2,2,2,2,2,0,0,2,2},
 /*VERSION*/   {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 /*HELP*/      {0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 /*EXP_LIST*/  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0},
@@ -465,6 +465,26 @@ static const int opt2attr[] = {
 	[')']	= ATTR_REPL_ZONE,
 };
 
+enum ct_direction {
+	DIR_SRC = 0,
+	DIR_DST = 1,
+};
+
+union ct_address {
+	uint32_t v4;
+	uint32_t v6[4];
+};
+
+static struct ct_network {
+	union ct_address netmask;
+	union ct_address network;
+} dir2network[2];
+
+static const int famdir2attr[2][2] = {
+	{ ATTR_ORIG_IPV4_SRC, ATTR_ORIG_IPV4_DST },
+	{ ATTR_ORIG_IPV6_SRC, ATTR_ORIG_IPV6_DST }
+};
+
 static char exit_msg[NUMBER_OF_CMD][64] = {
 	[CT_LIST_BIT] 		= "%d flow entries have been shown.\n",
 	[CT_CREATE_BIT]		= "%d flow entries have been created.\n",
@@ -507,8 +527,7 @@ static const char usage_expectation_parameters[] =
 	"Expectation parameters and options:\n"
 	"  --tuple-src ip\tSource address in expect tuple\n"
 	"  --tuple-dst ip\tDestination address in expect tuple\n"
-	"  --mask-src ip\t\tSource mask address\n"
-	"  --mask-dst ip\t\tDestination mask address\n";
+	;
 
 static const char usage_update_parameters[] =
 	"Updating parameters and options:\n"
@@ -529,6 +548,8 @@ static const char usage_parameters[] =
 	"  --orig-zone value\t\tSet zone for original direction\n"
 	"  --reply-zone value\t\tSet zone for reply direction\n"
 	"  -b, --buffer-size\t\tNetlink socket buffer size\n"
+	"  --mask-src ip\t\t\tSource mask address\n"
+	"  --mask-dst ip\t\t\tDestination mask address\n"
 	;
 
 #define OPTION_OFFSET 256
@@ -547,6 +568,7 @@ static LIST_HEAD(proto_list);
 
 static unsigned int options;
 static struct nfct_labelmap *labelmap;
+static int filter_family;
 
 void register_proto(struct ctproto_handler *h)
 {
@@ -1006,11 +1028,6 @@ parse_inetaddr(const char *cp, struct addr_parse *parse)
 	return AF_UNSPEC;
 }
 
-union ct_address {
-	uint32_t v4;
-	uint32_t v6[4];
-};
-
 static int
 parse_addr(const char *cp, union ct_address *address)
 {
@@ -1214,11 +1231,68 @@ filter_nat(const struct nf_conntrack *obj, const struct nf_conntrack *ct)
 }
 
 static int
+nfct_ip6_net_cmp(const union ct_address *addr, const struct ct_network *net)
+{
+	int i;
+	for (i=0;i<4;i++)
+		if ((addr->v6[i] & net->netmask.v6[i]) != net->network.v6[i])
+			return 1;
+	return 0;
+}
+
+static int
+nfct_ip_net_cmp(int family, const union ct_address *addr,
+                const struct ct_network *net)
+{
+	switch(family) {
+	case AF_INET:
+		return (addr->v4 & net->netmask.v4) != net->network.v4;
+	case AF_INET6:
+		return nfct_ip6_net_cmp(addr, net);
+	default:
+		return 0;
+	}
+}
+
+static int
+nfct_filter_network_direction(const struct nf_conntrack *ct, enum ct_direction dir)
+{
+	const int family = filter_family;
+	const union ct_address *address;
+	enum nf_conntrack_attr attr;
+	struct ct_network *net = &dir2network[dir];
+
+	if (nfct_get_attr_u8(ct, ATTR_ORIG_L3PROTO) != family)
+		return 1;
+
+	attr = famdir2attr[family == AF_INET6][dir];
+	address = nfct_get_attr(ct, attr);
+
+	return nfct_ip_net_cmp(family, address, net);
+}
+
+static int
+filter_network(const struct nf_conntrack *ct)
+{
+	if (options & CT_OPT_MASK_SRC) {
+		if (nfct_filter_network_direction(ct, DIR_SRC))
+			return 1;
+	}
+
+	if (options & CT_OPT_MASK_DST) {
+		if (nfct_filter_network_direction(ct, DIR_DST))
+			return 1;
+	}
+	return 0;
+}
+
+static int
 nfct_filter(struct nf_conntrack *obj, struct nf_conntrack *ct)
 {
 	if (filter_nat(obj, ct) ||
 	    filter_mark(ct) ||
-	    filter_label(ct))
+	    filter_label(ct) ||
+	    filter_network(ct))
 		return 1;
 
 	if (options & CT_COMPARISON &&
@@ -1489,7 +1563,8 @@ static int update_cb(enum nf_conntrack_msg_type type,
 	struct nf_conntrack *obj = data, *tmp;
 
 	if (filter_nat(obj, ct) ||
-	    filter_label(ct))
+	    filter_label(ct) ||
+	    filter_network(ct))
 		return NFCT_CB_CONTINUE;
 
 	if (nfct_attr_is_set(obj, ATTR_ID) && nfct_attr_is_set(ct, ATTR_ID) &&
@@ -1933,6 +2008,54 @@ static void labelmap_init(void)
 		perror("nfct_labelmap_new");
 }
 
+static void
+nfct_network_attr_prepare(const int family, enum ct_direction dir)
+{
+	const union ct_address *address, *netmask;
+	enum nf_conntrack_attr attr;
+	int i;
+	struct ct_network *net = &dir2network[dir];
+
+	attr = famdir2attr[family == AF_INET6][dir];
+
+	address = nfct_get_attr(tmpl.ct, attr);
+	netmask = nfct_get_attr(tmpl.mask, attr);
+
+	switch(family) {
+	case AF_INET:
+		net->network.v4 = address->v4 & netmask->v4;
+		break;
+	case AF_INET6:
+		for (i=0;i<4;i++)
+			net->network.v6[i] = address->v6[i] & netmask->v6[i];
+		break;
+	}
+
+	memcpy(&net->netmask, netmask, sizeof(union ct_address));
+
+	/* avoid exact source matching */
+	nfct_attr_unset(tmpl.ct, attr);
+}
+
+static void
+nfct_filter_init(const int family)
+{
+	filter_family = family;
+	if (options & CT_OPT_MASK_SRC) {
+		if (!(options & CT_OPT_ORIG_SRC))
+			exit_error(PARAMETER_PROBLEM,
+			           "Can't use --mask-src without --src");
+		nfct_network_attr_prepare(family, DIR_SRC);
+	}
+
+	if (options & CT_OPT_MASK_DST) {
+		if (!(options & CT_OPT_ORIG_DST))
+			exit_error(PARAMETER_PROBLEM,
+			           "Can't use --mask-dst without --dst");
+		nfct_network_attr_prepare(family, DIR_DST);
+	}
+}
+
 static void merge_bitmasks(struct nfct_bitmask **current,
 			  struct nfct_bitmask *src)
 {
@@ -2288,6 +2411,8 @@ int main(int argc, char *argv[])
 			exit_error(PARAMETER_PROBLEM, "Can't use -z with "
 						      "filtering parameters");
 
+		nfct_filter_init(family);
+
 		nfct_callback_register(cth, NFCT_T_ALL, dump_cb, tmpl.ct);
 
 		filter_dump = nfct_filter_dump_create();
@@ -2374,6 +2499,8 @@ int main(int argc, char *argv[])
 		if (!cth || !ith)
 			exit_error(OTHER_PROBLEM, "Can't open handler");
 
+		nfct_filter_init(family);
+
 		nfct_callback_register(cth, NFCT_T_ALL, update_cb, tmpl.ct);
 
 		res = nfct_query(cth, NFCT_Q_DUMP, &family);
@@ -2386,6 +2513,8 @@ int main(int argc, char *argv[])
 		ith = nfct_open(CONNTRACK, 0);
 		if (!cth || !ith)
 			exit_error(OTHER_PROBLEM, "Can't open handler");
+
+		nfct_filter_init(family);
 
 		nfct_callback_register(cth, NFCT_T_ALL, delete_cb, tmpl.ct);
 
@@ -2488,6 +2617,9 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "NOTICE: Netlink socket buffer size "
 					"has been set to %zu bytes.\n", ret);
 		}
+
+		nfct_filter_init(family);
+
 		signal(SIGINT, event_sighandler);
 		signal(SIGTERM, event_sighandler);
 		nfct_callback_register(cth, NFCT_T_ALL, event_cb, tmpl.ct);
