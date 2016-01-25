@@ -1017,10 +1017,15 @@ parse_addr(const char *cp, union ct_address *address)
 	struct addr_parse parse;
 	int ret;
 
-	if ((ret = parse_inetaddr(cp, &parse)) == AF_INET)
+	ret = parse_inetaddr(cp, &parse);
+	switch (ret) {
+	case AF_INET:
 		address->v4 = parse.addr.s_addr;
-	else if (ret == AF_INET6)
+		break;
+	case AF_INET6:
 		memcpy(address->v6, &parse.addr6, sizeof(parse.addr6));
+		break;
+	}
 
 	return ret;
 }
@@ -1966,14 +1971,17 @@ nfct_set_addr_from_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
 			   "Invalid IP address `%s'", optarg);
 	}
 	set_family(family, l3protonum);
-	if (l3protonum == AF_INET) {
+	switch (l3protonum) {
+	case AF_INET:
 		nfct_set_attr_u32(ct,
-				  opt2family_attr[opt][0],
-				  ad->v4);
-	} else if (l3protonum == AF_INET6) {
+		                  opt2family_attr[opt][0],
+		                  ad->v4);
+		break;
+	case AF_INET6:
 		nfct_set_attr(ct,
-			      opt2family_attr[opt][1],
-			      &ad->v6);
+		              opt2family_attr[opt][1],
+		              &ad->v6);
+		break;
 	}
 	nfct_set_attr_u8(ct, opt2attr[opt], l3protonum);
 }
