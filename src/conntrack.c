@@ -1029,22 +1029,43 @@ parse_inetaddr(const char *cp, struct addr_parse *parse)
 }
 
 static int
-parse_addr(const char *cp, union ct_address *address)
+parse_addr(const char *cp, union ct_address *address, int *mask)
 {
+	char buf[INET6_ADDRSTRLEN];
 	struct addr_parse parse;
-	int ret;
+	char *slash, *end;
+	int family;
 
-	ret = parse_inetaddr(cp, &parse);
-	switch (ret) {
+	strncpy((char *) &buf, cp, INET6_ADDRSTRLEN);
+	buf[INET6_ADDRSTRLEN - 1] = '\0';
+
+	if (mask != NULL) {
+		slash = strchr(buf, '/');
+		if (slash != NULL) {
+			*mask = strtol(slash + 1, &end, 10);
+			if (*mask < 0 || end != slash + strlen(slash))
+				*mask = -2; /* invalid netmask */
+			slash[0] = '\0';
+		} else {
+			*mask = -1; /* no netmask */
+		}
+	}
+
+	family = parse_inetaddr(buf, &parse);
+	switch (family) {
 	case AF_INET:
 		address->v4 = parse.addr.s_addr;
+		if (mask != NULL && *mask > 32)
+			*mask = -2; /* invalid netmask */
 		break;
 	case AF_INET6:
 		memcpy(address->v6, &parse.addr6, sizeof(parse.addr6));
+		if (mask != NULL && *mask > 128)
+			*mask = -2; /* invalid netmask */
 		break;
 	}
 
-	return ret;
+	return family;
 }
 
 static void
@@ -1086,7 +1107,7 @@ nat_parse(char *arg, struct nf_conntrack *obj, int type)
 		}
 	}
 
-	if (parse_addr(arg, &parse) == AF_UNSPEC) {
+	if (parse_addr(arg, &parse, NULL) == AF_UNSPEC) {
 		if (strlen(arg) == 0) {
 			exit_error(PARAMETER_PROBLEM, "No IP specified");
 		} else {
@@ -2107,7 +2128,7 @@ nfct_parse_addr_from_opt(int opt, struct nf_conntrack *ct,
 {
 	int l3protonum;
 
-	l3protonum = parse_addr(optarg, ad);
+	l3protonum = parse_addr(optarg, ad, NULL);
 	if (l3protonum == AF_UNSPEC) {
 		exit_error(PARAMETER_PROBLEM,
 			   "Invalid IP address `%s'", optarg);
