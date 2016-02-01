@@ -2082,18 +2082,10 @@ static void merge_bitmasks(struct nfct_bitmask **current,
 }
 
 static void
-nfct_set_addr_from_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
-		       int *family)
+nfct_set_addr_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
+		  int l3protonum)
 {
-	int l3protonum;
-
 	options |= opt2type[opt];
-	l3protonum = parse_addr(optarg, ad);
-	if (l3protonum == AF_UNSPEC) {
-		exit_error(PARAMETER_PROBLEM,
-			   "Invalid IP address `%s'", optarg);
-	}
-	set_family(family, l3protonum);
 	switch (l3protonum) {
 	case AF_INET:
 		nfct_set_attr_u32(ct,
@@ -2107,6 +2099,21 @@ nfct_set_addr_from_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
 		break;
 	}
 	nfct_set_attr_u8(ct, opt2attr[opt], l3protonum);
+}
+
+static void
+nfct_parse_addr_from_opt(int opt, struct nf_conntrack *ct,
+                         union ct_address *ad, int *family)
+{
+	int l3protonum;
+
+	l3protonum = parse_addr(optarg, ad);
+	if (l3protonum == AF_UNSPEC) {
+		exit_error(PARAMETER_PROBLEM,
+			   "Invalid IP address `%s'", optarg);
+	}
+	set_family(family, l3protonum);
+	nfct_set_addr_opt(opt, ct, ad, l3protonum);
 }
 
 int main(int argc, char *argv[])
@@ -2187,15 +2194,15 @@ int main(int argc, char *argv[])
 		case 'd':
 		case 'r':
 		case 'q':
-			nfct_set_addr_from_opt(c, tmpl.ct, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.ct, &ad, &family);
 			break;
 		case '[':
 		case ']':
-			nfct_set_addr_from_opt(c, tmpl.exptuple, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.exptuple, &ad, &family);
 			break;
 		case '{':
 		case '}':
-			nfct_set_addr_from_opt(c, tmpl.mask, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.mask, &ad, &family);
 			break;
 		case 'p':
 			options |= CT_OPT_PROTO;
