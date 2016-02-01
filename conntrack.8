@@ -117,9 +117,11 @@ This option can only be used in conjunction with "\-E, \-\-event".
 .TP
 .BI "-s, --orig-src " IP_ADDRESS
 Match only entries whose source address in the original direction equals the one specified as argument.
+Implies "--mask-src" when CIDR notation is used.
 .TP
 .BI "-d, --orig-dst " IP_ADDRESS
 Match only entries whose destination address in the original direction equals the one specified as argument.
+Implies "--mask-dst" when CIDR notation is used.
 .TP
 .BI "-r, --reply-src " IP_ADDRESS
 Match only entries whose source address in the reply direction equals the one specified as argument.
@@ -186,9 +188,11 @@ See iptables CT target for more information.
 .TP
 .BI "--tuple-src " IP_ADDRESS
 Specify the tuple source address of an expectation.
+Implies "--mask-src" when CIDR notation is used.
 .TP
 .BI "--tuple-dst " IP_ADDRESS
 Specify the tuple destination address of an expectation.
+Implies "--mask-dst" when CIDR notation is used.
 .TP
 .BI "--mask-src " IP_ADDRESS
 Specify the source address mask.

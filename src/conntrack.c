@@ -434,6 +434,17 @@ static const int opt2type[] = {
 	[')']	= CT_OPT_REPL_ZONE,
 };
 
+static const int opt2maskopt[] = {
+	['s']	= '{',
+	['d']	= '}',
+	['r']	= 0, /* no netmask */
+	['q']	= 0, /* support yet */
+	['{']	= 0,
+	['}']	= 0,
+	['[']	= '{',
+	[']']	= '}',
+};
+
 static const int opt2family_attr[][2] = {
 	['s']	= { ATTR_ORIG_IPV4_SRC,	ATTR_ORIG_IPV6_SRC },
 	['d']	= { ATTR_ORIG_IPV4_DST,	ATTR_ORIG_IPV6_DST },
@@ -682,6 +693,21 @@ static int bit2cmd(int command)
 			break;
 
 	return i;
+}
+
+static const char *get_long_opt(int opt)
+{
+	struct option o;
+	int i;
+
+	for (i = 0;; i++) {
+		o = opts[i];
+		if (o.name == NULL)
+			break;
+		if (o.val == opt)
+			return o.name;
+	}
+	return "unknown";
 }
 
 int generic_opt_check(int local_options, int num_opts,
@@ -2103,6 +2129,24 @@ static void merge_bitmasks(struct nfct_bitmask **current,
 }
 
 static void
+nfct_build_netmask(uint32_t *dst, int b, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++) {
+		if (b >= 32) {
+			dst[i] = 0xffffffff;
+			b -= 32;
+		} else if (b > 0) {
+			dst[i] = (1 << b) - 1;
+			b = 0;
+		} else {
+			dst[i] = 0;
+		}
+	}
+}
+
+static void
 nfct_set_addr_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
 		  int l3protonum)
 {
@@ -2124,17 +2168,47 @@ nfct_set_addr_opt(int opt, struct nf_conntrack *ct, union ct_address *ad,
 
 static void
 nfct_parse_addr_from_opt(int opt, struct nf_conntrack *ct,
+                         struct nf_conntrack *ctmask,
                          union ct_address *ad, int *family)
 {
-	int l3protonum;
+	int l3protonum, mask, maskopt;
 
-	l3protonum = parse_addr(optarg, ad, NULL);
+	l3protonum = parse_addr(optarg, ad, &mask);
 	if (l3protonum == AF_UNSPEC) {
 		exit_error(PARAMETER_PROBLEM,
 			   "Invalid IP address `%s'", optarg);
 	}
 	set_family(family, l3protonum);
+	maskopt = opt2maskopt[opt];
+	if (!maskopt && mask != -1) {
+		exit_error(PARAMETER_PROBLEM,
+		           "CIDR notation unavailable"
+		           " for `--%s'", get_long_opt(opt));
+	} else if (mask == -2) {
+		exit_error(PARAMETER_PROBLEM,
+		           "Invalid netmask");
+	}
+
 	nfct_set_addr_opt(opt, ct, ad, l3protonum);
+
+	/* bail if we don't have a netmask to set*/
+	if (!maskopt || mask == -1 || ctmask == NULL)
+		return;
+
+	switch(l3protonum) {
+	case AF_INET:
+		if (mask == 32)
+			return;
+		nfct_build_netmask(&ad->v4, mask, 1);
+		break;
+	case AF_INET6:
+		if (mask == 128)
+			return;
+		nfct_build_netmask((uint32_t *) &ad->v6, mask, 4);
+		break;
+	}
+
+	nfct_set_addr_opt(maskopt, ctmask, ad, l3protonum);
 }
 
 int main(int argc, char *argv[])
@@ -2215,15 +2289,17 @@ int main(int argc, char *argv[])
 		case 'd':
 		case 'r':
 		case 'q':
-			nfct_parse_addr_from_opt(c, tmpl.ct, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.ct, tmpl.mask,
+			                         &ad, &family);
 			break;
 		case '[':
 		case ']':
-			nfct_parse_addr_from_opt(c, tmpl.exptuple, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.exptuple, tmpl.mask,
+			                         &ad, &family);
 			break;
 		case '{':
 		case '}':
-			nfct_parse_addr_from_opt(c, tmpl.mask, &ad, &family);
+			nfct_parse_addr_from_opt(c, tmpl.mask, NULL, &ad, &family);
 			break;
 		case 'p':
 			options |= CT_OPT_PROTO;
