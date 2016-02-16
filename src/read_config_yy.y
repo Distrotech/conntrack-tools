@@ -1126,11 +1126,8 @@ general_line: hashsize
 	    | systemd
 	    ;
 
-systemd: T_SYSTEMD T_ON { /* already enabled in init_config() */ };
-systemd: T_SYSTEMD T_OFF
-{
-	conf.systemd = 0;
-};
+systemd: T_SYSTEMD T_ON		{ conf.systemd = 1; };
+systemd: T_SYSTEMD T_OFF	{ conf.systemd = 0; };
 
 netlink_buffer_size: T_BUFFER_SIZE T_NUMBER
 {
@@ -1863,9 +1860,6 @@ init_config(char *filename)
 	CONFIG(syslog_facility) = -1;
 	CONFIG(stats).syslog_facility = -1;
 	CONFIG(netlink).subsys_id = -1;
-
-	/* enable systemd by default */
-	CONFIG(systemd) = 1;
 
 	/* Initialize list of user-space helpers */
 	INIT_LIST_HEAD(&CONFIG(cthelper).list);
