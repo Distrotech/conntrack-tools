@@ -520,7 +520,7 @@ static const char usage_commands[] =
 	"  -S\t\t\t\tShow statistics\n";
 
 static const char usage_tables[] =
-	"Tables: conntrack, expect\n";
+	"Tables: conntrack, expect, dying, unconfirmed\n";
 
 static const char usage_conntrack_parameters[] =
 	"Conntrack parameters and options:\n"
