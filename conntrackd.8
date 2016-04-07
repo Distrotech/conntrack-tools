@@ -24,17 +24,17 @@ Run conntrackd in daemon mode.
 .B conntrackd 
 can be used in client mode to request several information and operations to a running daemon
 .TP
-.BI "-i "[ct|expect]"
+.BI "-i " "[ct|expect]"
 Dump the internal cache, i.e. show local states
 .TP
-.BI "-e "[ct|expect]"
+.BI "-e " "[ct|expect]"
 Dump the external cache, i.e. show foreign states
 .TP
 .BI "-x "
 Display output in XML format. This option is only valid in combination
 with "\-i" and "\-e" parameters.
 .TP
-.BI "-f " "[|internal|external]"
+.BI "-f " "[internal|external]"
 Flush the internal and/or external cache
 .TP
 .BI "-F [ct|expect]"
@@ -54,7 +54,7 @@ Request resync with other node (only FT-FW and NOTRACK modes).
 .BI "-k "
 Kill the daemon
 .TP
-.BI "-s " "[|network|cache|runtime|link|rsqueue|process|queue|ct|expect]"
+.BI "-s " "[network|cache|runtime|link|rsqueue|process|queue|ct|expect]"
 Dump statistics. If no parameter is passed, it displays the general statistics.
 If "network" is passed as parameter it displays the networking statistics.
 If "cache" is passed as parameter, it shows the extended cache statistics.
