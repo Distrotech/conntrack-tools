@@ -48,6 +48,22 @@ mechanism used to "expect" RELATED connections to existing ones.  Expectations
 are generally used by "connection tracking helpers" (sometimes called
 application level gateways [ALGs]) for more complex protocols such as FTP,
 SIP, H.323.
+.TP
+.BR "dying" :
+This table shows the conntrack entries, that have expired and that have been
+destroyed by the connection tracking system itself, or via the conntrack utility.
+.TP
+.BR "unconfirmed" :
+This table shows new entries, that are not yet inserted into the conntrack table.
+These entries are attached to packets that are traversing the stack,
+but did not reach the confirmation point at the postrouting hook.
+.PP
+The tables "dying" and "unconfirmed" are basically only useful for debugging purposes.
+Under normal operation, it is hard to see entries in any of them.
+There are corner cases, where it is valid to see entries in the
+unconfirmed table, eg. when packets that are enqueued via nfqueue, and
+the dying table, eg. when conntrackd runs in event reliable mode.
+.PP
 .SH OPTIONS
 The options recognized by 
 .B conntrack
