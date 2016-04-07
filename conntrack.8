@@ -115,11 +115,11 @@ however, this results in more memory consumption.
 This option can only be used in conjunction with "\-E, \-\-event".
 .SS FILTER PARAMETERS
 .TP
-.BI "-s, --orig-src " IP_ADDRESS
+.BI "-s, --src, --orig-src " IP_ADDRESS
 Match only entries whose source address in the original direction equals the one specified as argument.
 Implies "--mask-src" when CIDR notation is used.
 .TP
-.BI "-d, --orig-dst " IP_ADDRESS
+.BI "-d, --dst, --orig-dst " IP_ADDRESS
 Match only entries whose destination address in the original direction equals the one specified as argument.
 Implies "--mask-dst" when CIDR notation is used.
 .TP
