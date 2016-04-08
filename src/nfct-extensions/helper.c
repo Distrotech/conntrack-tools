@@ -33,7 +33,7 @@ static void
 nfct_cmd_helper_usage(char *argv[])
 {
 	fprintf(stderr, "nfct v%s: Missing command\n"
-			"%s helper list|add|delete|get|flush "
+			"%s helper list|add|delete|disable|get|flush "
 			"[parameters...]\n", VERSION, argv[0]);
 }
 
@@ -408,7 +408,7 @@ nfct_cmd_helper_disable(struct mnl_socket *nl, int argc, char *argv[])
 
 	if (argc < 6) {
 		nfct_perror("missing parameters\n"
-			    "syntax: nfct add helper name family protocol");
+			    "syntax: nfct disable helper name family protocol");
 		return -1;
 	}
 
