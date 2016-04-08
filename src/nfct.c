@@ -204,6 +204,9 @@ static const char help_msg[] =
 	"  add object-name\tAdd new accounting object to table\n"
 	"  delete object-name\tDelete existing accounting object\n"
 	"  get object-name\tGet existing accounting object\n"
+	"  disable\t\tDisable queueing packets to userspace for helper inspection\n"
+	"  default-set\t\tSet default timeouts\n"
+	"  default-get\t\tGet default timeouts\n"
 	"  flush\t\t\tFlush accounting object table\n";
 
 static int nfct_cmd_help(int argc, char *argv[])
