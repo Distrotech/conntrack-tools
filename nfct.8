@@ -23,9 +23,23 @@ Delete an object.
 .TP
 .BI "get "
 Get an existing object.
+.TP
+.BI "flush "
+Flush the accounting object table.
+.TP
+.BI "disable "
+This command is for the helper subsystem. It allows you to disable enqueueing packets to userspace for helper inspection.
+.TP
+.BI "default-set "
+This command is for the timeout subsystem. It allows you to set default protocol timeouts.
+.TP
+.BI "default-get "
+This command is for the timeout subsystem. It allows you to get the default protocol timeouts.
 .SH SUBSYS
-By the time this manpage has been written, the supported subsystem are
+By the time this manpage has been written, the supported subsystems are
 .B timeout
+and
+.B helper.
 .TP
 .BI "timeout "
 The timeout subsystem allows you to define fine-grain timeout policies.
