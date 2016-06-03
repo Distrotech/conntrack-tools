@@ -229,8 +229,8 @@ enum nta_attr {
 	NTA_TCP_WSCALE_REPL,	/* uint8_t */
 	NTA_HELPER_NAME,	/* string (variable length) */
 	NTA_LABELS,		/* array of uint32_t (variable length) */
-	NTA_SNAT_IPV6,		/* struct nfct_attr_grp_ipv6 */
-	NTA_DNAT_IPV6,		/* struct nfct_attr_grp_ipv6 */
+	NTA_SNAT_IPV6,		/* uint32_t * 4 */
+	NTA_DNAT_IPV6,		/* uint32_t * 4 */
 	NTA_MAX
 };
 
